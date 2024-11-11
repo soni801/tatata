@@ -39,8 +39,9 @@ fn main() {
     // Vec of action queue
     let mut queue: Vec<QueueItem> = Vec::new();
 
-    // Get file
+    // Get arguments
     let args = Arguments::parse();
+    let dry_run = args.dry_run;
     let result = std::fs::read_to_string(&args.file);
 
     // Try to open file
@@ -273,14 +274,26 @@ fn main() {
         for action in entry.actions {
             match action {
                 Action::MouseMoveAction { x, y } => {
-                    let _ = enigo.move_mouse(x, y, Coordinate::Abs);
+                    if dry_run {
+                        println!("Move mouse to {x}, {y}");
+                    } else {
+                        let _ = enigo.move_mouse(x, y, Coordinate::Abs);
+                    }
                 }
                 Action::MousePressAction { button } => {
-                    let _ = enigo.button(button, Click);
+                    if dry_run {
+                        println!("Press mouse {button:?}");
+                    } else {
+                        let _ = enigo.button(button, Click);
+                    }
                 }
                 Action::KeyPressAction { key } => {
-                    if let Err(error) = enigo.key(key, Click) {
-                        println!("Failed to press key {key:?}: {error}");
+                    if dry_run {
+                        println!("Press key {key:?}");
+                    } else {
+                        if let Err(error) = enigo.key(key, Click) {
+                            println!("Failed to press key {key:?}: {error}");
+                        }
                     }
                 }
             }
