@@ -59,9 +59,18 @@ actions separated by a semicolon (`;`). Valid actions are:
 
 TATATA is obviously still in super early development. Future plans include:
 
-- Interpolated mouse movements (i.e. moving the mouse over time as opposed to an instant "snap")
-- Explicitly specified _down_ and _up_ presses of mouse and keyboard buttons
-- Relative timestamps (i.e. specifying that one line happens `x` milliseconds after the previous one instead of at an
+- [ ] Text actions (i.e. typing out the specified text without needing a ton of `keypress` events)
+- [ ] Interpolated mouse movements (i.e. moving the mouse over time as opposed to an instant "snap")
+- [ ] Explicitly specified _down_ and _up_ presses of mouse and keyboard buttons
+- [ ] Relative timestamps (i.e. specifying that one line happens `x` milliseconds after the previous one instead of at an
 absolute time)
-- Support for inline comments and multiline comments
-- Meaningful parser warnings and comments upon running a script
+- [ ] Support for inline comments and multiline comments
+- [ ] Meaningful parser warnings and comments upon running a script
+- [ ] Syntax highlighting extensions/plugins for major code editors
+- [ ] A graphical editor and event viewer
+- [ ] A system tray icon for running scripts
+
+> [!CAUTION]
+> Due to us still being really early into TATATA's development, expect many upcoming changes to break existing scripts.
+> If this is a concern, you can keep older versions of TATATA on your computer for usage with older scripts.
+> Alternatively, you can download older releases from GitHub as I intend on keeping the version history intact.
