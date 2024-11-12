@@ -41,6 +41,9 @@ enum Action {
     },
     KeyUp {
         key: Key
+    },
+    Text {
+        text: String
     }
 }
 
@@ -112,7 +115,7 @@ fn parse_file(file_path: PathBuf) -> Vec<QueueItem> {
         // Get line data
         let line_decoded: Vec<&str> = line.split(">").collect();
         if line_decoded.len() != 2 {
-            println!("Line {line_index}: Incorrectly formatted line: {line}");
+            println!("Line {line_index}: Incorrectly formatted line: {line:?}");
             process::exit(1);
         }
 
@@ -324,6 +327,16 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
                     _ => panic!("Line {line_index} ({action_name}): Reached a branch that should be impossible to reach. This is not your fault, please report a bug on GitHub if this keeps happening!")
                 }
             }
+            "text" => {
+                // Make sure text is provided
+                if segments.len() < 2 {
+                    println!("Line {line_index} ({action_name}): No text provided");
+                    process::exit(1);
+                }
+
+                // Add to actions
+                actions.push(Action::Text { text: segments[1..].join(" ") });
+            }
             _ => {
                 println!("Line {line_index}: Invalid action: {action_name:?}");
                 process::exit(1);
@@ -378,12 +391,21 @@ fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_e
         Action::KeyUp { key } => {
             if should_execute {
                 if let Err(error) = enigo.key(key, Direction::Release) {
-                    println!("Failed to press key {key:?}: {error}");
+                    println!("Failed to release key {key:?}: {error}");
                 }
             }
 
             if should_log {
                 println!("At {current_time}ms: Release key {key:?}");
+            }
+        }
+        Action::Text { text } => {
+            if should_execute {
+                let _ = enigo.text(text.as_str());
+            }
+
+            if should_log {
+                println!("At {current_time}ms: Input text {text:?}");
             }
         }
     }

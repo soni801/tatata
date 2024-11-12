@@ -56,12 +56,14 @@ actions separated by a semicolon (`;`). Valid actions are:
   - Arrow keys: `up`, `down`, `left`, `right`
   - The following other special keys: `tab`, `escape`, `space`, `enter`, `backspace`, `insert` (unavailable on macOS),
   `delete`, `home`, `end`, `pageup`, `pagedown`
+- `text`: Write the following text, up until the end of the line or the next semicolon (`;`). Does not need to be
+  wrapped in quotes, and cannot contain the angle bracket separator (`>`).
 
 ### Example
 
 ```
 0>mousemove 500 100; mousedown 1;mouseup 1
-100>keydown h;keyup h;keydown e;keyup e;keydown l;keyup l;keydown l;keyup l;keydown o;keyup o
+100>keydown enter;keyup enter;text Hello World!
 200>mousemove 800 100;mousedown 2
 250>mousemove 800 670;mouseup 2
 300>mousemove 1460 120
