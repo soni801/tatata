@@ -233,7 +233,7 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
                 match action_name {
                     "mousedown" => actions.push(Action::MouseDown { button }),
                     "mouseup" => actions.push(Action::MouseUp { button }),
-                    _ => panic!("Line {line_index} ({action_name}): Reached a branch that should be impossible to reach. This is not your fault, please report a bug on GitHub if this keeps happening!")
+                    _ => unreachable!("Mouse action must be mousedown or mouseup")
                 }
             }
             "keydown" | "keyup" => {
@@ -324,7 +324,7 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
                 match action_name {
                     "keydown" => actions.push(Action::KeyDown { key }),
                     "keyup" => actions.push(Action::KeyUp { key }),
-                    _ => panic!("Line {line_index} ({action_name}): Reached a branch that should be impossible to reach. This is not your fault, please report a bug on GitHub if this keeps happening!")
+                    _ => unreachable!("Key action must be keydown or keyup")
                 }
             }
             "text" => {
