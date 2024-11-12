@@ -10,9 +10,13 @@ struct Arguments {
     /// The TATATA file to execute
     file: PathBuf,
 
-    /// If passed, print output to stdout instead of sending events
+    /// Print output to stdout instead of sending events
     #[arg(short, long, default_value_t = false)]
-    dry_run: bool
+    dry_run: bool,
+
+    /// Log all actions to stdout
+    #[arg(short, long, default_value_t = false)]
+    verbose: bool
 }
 
 #[derive(Debug)]
@@ -38,8 +42,9 @@ enum Action {
 fn main() {
     // Get arguments
     let args = Arguments::parse();
-    let dry_run = args.dry_run;
     let queue = parse_file(args.file);
+    let dry_run = args.dry_run;
+    let verbose = args.verbose;
 
     // Execute file
     let mut current_timestamp = 0;
@@ -55,7 +60,7 @@ fn main() {
 
         // Execute actions
         for action in entry.actions {
-            execute_action(&mut enigo, action, dry_run);
+            execute_action(&mut enigo, action, !dry_run, dry_run || verbose);
         }
 
         // Update current timestamp
@@ -316,29 +321,35 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
     actions
 }
 
-fn execute_action(enigo: &mut Enigo, action: Action, dry_run: bool) {
+fn execute_action(enigo: &mut Enigo, action: Action, should_execute: bool, should_log: bool) {
     match action {
         Action::MouseMoveAction { x, y } => {
-            if dry_run {
-                println!("Move mouse to {x}, {y}");
-            } else {
+            if should_execute {
                 let _ = enigo.move_mouse(x, y, Coordinate::Abs);
+            }
+
+            if should_log {
+                println!("Move mouse to {x}, {y}");
             }
         }
         Action::MousePressAction { button } => {
-            if dry_run {
-                println!("Press mouse {button:?}");
-            } else {
+            if should_execute {
                 let _ = enigo.button(button, Click);
+            }
+
+            if should_log {
+                println!("Press mouse {button:?}");
             }
         }
         Action::KeyPressAction { key } => {
-            if dry_run {
-                println!("Press key {key:?}");
-            } else {
+            if should_execute {
                 if let Err(error) = enigo.key(key, Click) {
                     println!("Failed to press key {key:?}: {error}");
                 }
+            }
+
+            if should_log {
+                println!("Press key {key:?}");
             }
         }
     }
