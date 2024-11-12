@@ -60,7 +60,7 @@ fn main() {
 
         // Execute actions
         for action in entry.actions {
-            execute_action(&mut enigo, action, !dry_run, dry_run || verbose);
+            execute_action(&mut enigo, entry.time, action, !dry_run, dry_run || verbose);
         }
 
         // Update current timestamp
@@ -321,7 +321,7 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
     actions
 }
 
-fn execute_action(enigo: &mut Enigo, action: Action, should_execute: bool, should_log: bool) {
+fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_execute: bool, should_log: bool) {
     match action {
         Action::MouseMoveAction { x, y } => {
             if should_execute {
@@ -329,7 +329,7 @@ fn execute_action(enigo: &mut Enigo, action: Action, should_execute: bool, shoul
             }
 
             if should_log {
-                println!("Move mouse to {x}, {y}");
+                println!("At {current_time}ms: Move mouse to {x}, {y}");
             }
         }
         Action::MousePressAction { button } => {
@@ -338,7 +338,7 @@ fn execute_action(enigo: &mut Enigo, action: Action, should_execute: bool, shoul
             }
 
             if should_log {
-                println!("Press mouse {button:?}");
+                println!("At {current_time}ms: Press mouse {button:?}");
             }
         }
         Action::KeyPressAction { key } => {
@@ -349,7 +349,7 @@ fn execute_action(enigo: &mut Enigo, action: Action, should_execute: bool, shoul
             }
 
             if should_log {
-                println!("Press key {key:?}");
+                println!("At {current_time}ms: Press key {key:?}");
             }
         }
     }
