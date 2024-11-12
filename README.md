@@ -59,6 +59,7 @@ actions separated by a semicolon (`;`). Valid actions are:
 
 TATATA is obviously still in super early development. Future plans include:
 
+- [ ] Only allow `.tatata` files
 - [ ] Text actions (i.e. typing out the specified text without needing a ton of `keypress` events)
 - [ ] Interpolated mouse movements (i.e. moving the mouse over time as opposed to an instant "snap")
 - [ ] Explicitly specified _down_ and _up_ presses of mouse and keyboard buttons
