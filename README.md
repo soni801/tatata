@@ -19,6 +19,22 @@ Download the latest [release](https://github.com/soni801/tatata/releases) for yo
 the same directory as your _tatata_ executable is in. Create a `.tatata` file containing your script, and run
 `tatata.exe script.tatata` to run the script (replacing `tatata.exe` with the correct executable for your platform).
 
+<details>
+  <summary>Additional instructions for macOS</summary>
+
+  > [!IMPORTANT]
+  > TATATA currently only runs on Macs running Apple Silicon SoC's.
+
+  > Before running TATATA, you'll need to make it executable by running `chmod +x ./tatata-macos` (replacing
+  > `tatata-macos` with the name of the executable). When running TATATA for the first time, your Mac will likely
+  > complain about Apple not being able to check the executable for malware. To resolve this, go to _System Settings >
+  > Privacy & Security_ and approve TATATA towards the bottom of the page.
+
+  > [!TIP]
+  > If you're afraid of manually approving software, you can read through the code to assure that it is safe to run.
+  > Alternatively, you can compile the app yourself from source.
+</details>
+
 ## The TATATA language
 
 The TATATA language is heavily inspired by the [Portal 2 TAS language](https://wiki.portal2.sr/TASing). Every line
@@ -57,21 +73,10 @@ actions separated by a semicolon (`;`). Valid actions are:
 
 ## Future plans
 
-TATATA is obviously still in super early development. Future plans include:
-
-- [ ] Only allow `.tatata` files
-- [ ] Text actions (i.e. typing out the specified text without needing a ton of `keypress` events)
-- [ ] Interpolated mouse movements (i.e. moving the mouse over time as opposed to an instant "snap")
-- [ ] Explicitly specified _down_ and _up_ presses of mouse and keyboard buttons
-- [ ] Relative timestamps (i.e. specifying that one line happens `x` milliseconds after the previous one instead of at an
-absolute time)
-- [ ] Support for inline comments and multiline comments
-- [ ] Meaningful parser warnings and comments upon running a script
-- [ ] Syntax highlighting extensions/plugins for major code editors
-- [ ] A graphical editor and event viewer
-- [ ] A system tray icon for running scripts
+TATATA is obviously still in super early development. You can find future plans, as well as an overview of the current
+status, on the [GitHub Project](https://github.com/users/soni801/projects/6).
 
 > [!CAUTION]
-> Due to us still being really early into TATATA's development, expect many upcoming changes to break existing scripts.
+> Due to TATATA still being early in its development cycle, expect many upcoming changes to break existing scripts.
 > If this is a concern, you can keep older versions of TATATA on your computer for usage with older scripts.
 > Alternatively, you can download older releases from GitHub as I intend on keeping the version history intact.
