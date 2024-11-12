@@ -20,19 +20,19 @@ the same directory as your _tatata_ executable is in. Create a `.tatata` file co
 `tatata.exe script.tatata` to run the script (replacing `tatata.exe` with the correct executable for your platform).
 
 <details>
-  <summary>Additional instructions for macOS</summary>
+<summary>Additional instructions for macOS</summary>
 
-  > [!IMPORTANT]
-  > TATATA currently only runs on Macs running Apple Silicon SoC's.
+> [!IMPORTANT]
+> TATATA currently only runs on Macs running Apple Silicon SoC's.
 
-  > Before running TATATA, you'll need to make it executable by running `chmod +x ./tatata-macos` (replacing
-  > `tatata-macos` with the name of the executable). When running TATATA for the first time, your Mac will likely
-  > complain about Apple not being able to check the executable for malware. To resolve this, go to _System Settings >
-  > Privacy & Security_ and approve TATATA towards the bottom of the page.
+> Before running TATATA, you'll need to make it executable by running `chmod +x ./tatata-macos` (replacing
+> `tatata-macos` with the name of the executable). When running TATATA for the first time, your Mac will likely
+> complain about Apple not being able to check the executable for malware. To resolve this, go to _System Settings >
+> Privacy & Security_ and approve TATATA towards the bottom of the page.
 
-  > [!TIP]
-  > If you're afraid of manually approving software, you can read through the code to assure that it is safe to run.
-  > Alternatively, you can compile the app yourself from source.
+> [!TIP]
+> If you're afraid of manually approving software, you can read through the code to assure that it is safe to run.
+> Alternatively, you can compile the app yourself from source.
 </details>
 
 ## The TATATA language
