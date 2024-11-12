@@ -149,7 +149,9 @@ fn main() {
                     1 => Button::Left,
                     2 => Button::Right,
                     3 => Button::Middle,
+                    #[cfg(not(target_os = "macos"))]
                     4 => Button::Back,
+                    #[cfg(not(target_os = "macos"))]
                     5 => Button::Forward,
                     _ => {
                         println!("Line {line_index} (mousepress): Invalid button {:?}", segments[1]);
@@ -203,6 +205,7 @@ fn main() {
                     "f19" => Key::F19,
                     "f20" => Key::F20,
                     "home" => Key::Home,
+                    #[cfg(not(target_os = "macos"))]
                     "insert" => Key::Insert,
                     "left" => Key::LeftArrow,
                     "pagedown" => Key::PageDown,

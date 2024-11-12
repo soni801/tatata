@@ -31,8 +31,8 @@ actions separated by a semicolon (`;`). Valid actions are:
   - `1`: Left click
   - `2`: Right click
   - `3`: Middle click
-  - `4`: Back
-  - `5`: Forward
+  - `4`: Back (unavailable on macOS)
+  - `5`: Forward (unavailable on macOS)
 - `keypress`: Press and immediately release a key on the keyboard. This can take any of the following:
   - A letter or number found on a standard keyboard
   - A symbol you can type on the base layer of your keyboard, i.e. without holding any modifiers
@@ -40,8 +40,8 @@ actions separated by a semicolon (`;`). Valid actions are:
   `f14`, `f15`, `f16`, `f17`, `f18`, `f19`, `f20`
   - The following modifiers: `control`, `shift`, `alt`, `super` (windows/command key), `capslock`
   - Arrow keys: `up`, `down`, `left`, `right`
-  - The following other special keys: `tab`, `escape`, `space`, `enter`, `backspace`, `insert`, `delete`, `home`, `end`,
-  `pageup`, `pagedown`
+  - The following other special keys: `tab`, `escape`, `space`, `enter`, `backspace`, `insert` (unavailable on macOS),
+  `delete`, `home`, `end`, `pageup`, `pagedown`
 
 ### Example
 
