@@ -137,157 +137,162 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
             continue;
         }
 
+        // Split into segments
+        let segments: Vec<&str> = action.split_whitespace().collect();
+
         // Add Action to actions
-        if action.starts_with("mousemove") {
-            // Validate arguments
-            let segments: Vec<&str> = action.split_whitespace().collect();
-            if segments.len() < 3 {
-                println!("Line {line_index} (mousemove): Too few arguments! (min. 2 arguments)");
-                process::exit(1);
-            }
-            if segments.len() > 3 {
-                println!("Line {line_index} (mousemove): Too many arguments provided (max. 2 arguments)");
-                process::exit(1);
-            }
-
-            // Parse X position
-            let x: i32 = segments[1].parse().unwrap_or_else(|error| {
-                println!("Line {line_index} (mousemove): Invalid X position {:?} ({error})", segments[1]);
-                process::exit(1);
-            });
-
-            // Parse Y position
-            let y: i32 = segments[2].parse().unwrap_or_else(|error| {
-                println!("Line {line_index} (mousemove): Invalid Y position {:?} ({error})", segments[2]);
-                process::exit(1);
-            });
-
-            // Add to actions
-            actions.push(Action::MouseMoveAction { x, y });
-        } else if action.starts_with("mousepress") {
-            // Validate arguments
-            let segments: Vec<&str> = action.split_whitespace().collect();
-            if segments.len() < 2 {
-                println!("Line {line_index} (mousepress): No argument provided");
-                process::exit(1);
-            }
-            if segments.len() > 2 {
-                println!("Line {line_index} (mousepress): Too many arguments provided (max. 1 argument)");
-                process::exit(1);
-            }
-
-            // Parse button
-            let button_number: u8 = segments[1].parse().unwrap_or_else(|error| {
-                println!("Line {line_index} (mousepress): Invalid button {:?} ({error})", segments[1]);
-                process::exit(1);
-            });
-
-            let button = match button_number {
-                1 => Button::Left,
-                2 => Button::Right,
-                3 => Button::Middle,
-                #[cfg(not(target_os = "macos"))]
-                4 => Button::Back,
-                #[cfg(not(target_os = "macos"))]
-                5 => Button::Forward,
-                _ => {
-                    println!("Line {line_index} (mousepress): Invalid button {:?}", segments[1]);
+        match segments[0] { 
+            "mousemove" => {
+                // Validate arguments
+                if segments.len() < 3 {
+                    println!("Line {line_index} (mousemove): Too few arguments! (min. 2 arguments)");
                     process::exit(1);
                 }
-            };
+                if segments.len() > 3 {
+                    println!("Line {line_index} (mousemove): Too many arguments provided (max. 2 arguments)");
+                    process::exit(1);
+                }
 
-            // Add to actions
-            actions.push(Action::MousePressAction { button });
-        } else if action.starts_with("keypress") {
-            // Validate arguments
-            let segments: Vec<&str> = action.split_whitespace().collect();
-            if segments.len() < 2 {
-                println!("Line {line_index} (keypress): No argument provided");
-                process::exit(1);
-            }
-            if segments.len() > 2 {
-                println!("Line {line_index} (keypress): Too many arguments provided (max. 1 argument)");
-                process::exit(1);
-            }
+                // Parse X position
+                let x: i32 = segments[1].parse().unwrap_or_else(|error| {
+                    println!("Line {line_index} (mousemove): Invalid X position {:?} ({error})", segments[1]);
+                    process::exit(1);
+                });
 
-            // Parse key
-            let key = match segments[1].to_lowercase().as_str() {
-                "alt" => Key::Alt,
-                "backspace" => Key::Backspace,
-                "capslock" => Key::CapsLock,
-                "control" => Key::Control,
-                "delete" => Key::Delete,
-                "down" => Key::DownArrow,
-                "end" => Key::End,
-                "enter" => Key::Return,
-                "escape" => Key::Escape,
-                "f1" => Key::F1,
-                "f2" => Key::F2,
-                "f3" => Key::F3,
-                "f4" => Key::F4,
-                "f5" => Key::F5,
-                "f6" => Key::F6,
-                "f7" => Key::F7,
-                "f8" => Key::F8,
-                "f9" => Key::F9,
-                "f10" => Key::F10,
-                "f11" => Key::F11,
-                "f12" => Key::F12,
-                "f13" => Key::F13,
-                "f14" => Key::F14,
-                "f15" => Key::F15,
-                "f16" => Key::F16,
-                "f17" => Key::F17,
-                "f18" => Key::F18,
-                "f19" => Key::F19,
-                "f20" => Key::F20,
-                "home" => Key::Home,
-                #[cfg(not(target_os = "macos"))]
-                "insert" => Key::Insert,
-                "left" => Key::LeftArrow,
-                "pagedown" => Key::PageDown,
-                "pageup" => Key::PageUp,
-                "right" => Key::RightArrow,
-                "shift" => Key::Shift,
-                "space" => Key::Space,
-                "super" => Key::Meta,
-                "tab" => Key::Tab,
-                "up" => Key::UpArrow,
-                _ => {
-                    // Parse non-special keys
-                    let key: char = segments[1].to_lowercase().parse().unwrap_or_else(|error| {
-                        println!("Line {line_index} (keypress): Invalid key {:?} ({error})", segments[1]);
+                // Parse Y position
+                let y: i32 = segments[2].parse().unwrap_or_else(|error| {
+                    println!("Line {line_index} (mousemove): Invalid Y position {:?} ({error})", segments[2]);
+                    process::exit(1);
+                });
+
+                // Add to actions
+                actions.push(Action::MouseMoveAction { x, y });
+            }
+            "mousepress" => {
+                // Validate arguments
+                if segments.len() < 2 {
+                    println!("Line {line_index} (mousepress): No argument provided");
+                    process::exit(1);
+                }
+                if segments.len() > 2 {
+                    println!("Line {line_index} (mousepress): Too many arguments provided (max. 1 argument)");
+                    process::exit(1);
+                }
+
+                // Parse button
+                let button_number: u8 = segments[1].parse().unwrap_or_else(|error| {
+                    println!("Line {line_index} (mousepress): Invalid button {:?} ({error})", segments[1]);
+                    process::exit(1);
+                });
+
+                let button = match button_number {
+                    1 => Button::Left,
+                    2 => Button::Right,
+                    3 => Button::Middle,
+                    #[cfg(not(target_os = "macos"))]
+                    4 => Button::Back,
+                    #[cfg(not(target_os = "macos"))]
+                    5 => Button::Forward,
+                    _ => {
+                        println!("Line {line_index} (mousepress): Invalid button {:?}", segments[1]);
                         process::exit(1);
-                    });
+                    }
+                };
 
-                    // Disallow non-standard keys
-                    match key {
-                        'a'..='z' => Key::Unicode(key),
-                        '0'..='9' => Key::Unicode(key),
-                        '`' => Key::Unicode(key),
-                        '-' => Key::Unicode(key),
-                        '=' => Key::Unicode(key),
-                        '[' => Key::Unicode(key),
-                        ']' => Key::Unicode(key),
-                        '\\' => Key::Unicode(key),
-                        ';' => Key::Unicode(key),
-                        '\'' => Key::Unicode(key),
-                        ',' => Key::Unicode(key),
-                        '.' => Key::Unicode(key),
-                        '/' => Key::Unicode(key),
-                        _ => {
-                            println!("Line {line_index} (keypress): Invalid key {:?}", segments[1]);
+                // Add to actions
+                actions.push(Action::MousePressAction { button });
+            }
+            "keypress" => {
+                // Validate arguments
+                if segments.len() < 2 {
+                    println!("Line {line_index} (keypress): No argument provided");
+                    process::exit(1);
+                }
+                if segments.len() > 2 {
+                    println!("Line {line_index} (keypress): Too many arguments provided (max. 1 argument)");
+                    process::exit(1);
+                }
+
+                // Parse key
+                let key = match segments[1].to_lowercase().as_str() {
+                    "alt" => Key::Alt,
+                    "backspace" => Key::Backspace,
+                    "capslock" => Key::CapsLock,
+                    "control" => Key::Control,
+                    "delete" => Key::Delete,
+                    "down" => Key::DownArrow,
+                    "end" => Key::End,
+                    "enter" => Key::Return,
+                    "escape" => Key::Escape,
+                    "f1" => Key::F1,
+                    "f2" => Key::F2,
+                    "f3" => Key::F3,
+                    "f4" => Key::F4,
+                    "f5" => Key::F5,
+                    "f6" => Key::F6,
+                    "f7" => Key::F7,
+                    "f8" => Key::F8,
+                    "f9" => Key::F9,
+                    "f10" => Key::F10,
+                    "f11" => Key::F11,
+                    "f12" => Key::F12,
+                    "f13" => Key::F13,
+                    "f14" => Key::F14,
+                    "f15" => Key::F15,
+                    "f16" => Key::F16,
+                    "f17" => Key::F17,
+                    "f18" => Key::F18,
+                    "f19" => Key::F19,
+                    "f20" => Key::F20,
+                    "home" => Key::Home,
+                    #[cfg(not(target_os = "macos"))]
+                    "insert" => Key::Insert,
+                    "left" => Key::LeftArrow,
+                    "pagedown" => Key::PageDown,
+                    "pageup" => Key::PageUp,
+                    "right" => Key::RightArrow,
+                    "shift" => Key::Shift,
+                    "space" => Key::Space,
+                    "super" => Key::Meta,
+                    "tab" => Key::Tab,
+                    "up" => Key::UpArrow,
+                    _ => {
+                        // Parse non-special keys
+                        let key: char = segments[1].to_lowercase().parse().unwrap_or_else(|error| {
+                            println!("Line {line_index} (keypress): Invalid key {:?} ({error})", segments[1]);
                             process::exit(1);
+                        });
+
+                        // Disallow non-standard keys
+                        match key {
+                            'a'..='z' => Key::Unicode(key),
+                            '0'..='9' => Key::Unicode(key),
+                            '`' => Key::Unicode(key),
+                            '-' => Key::Unicode(key),
+                            '=' => Key::Unicode(key),
+                            '[' => Key::Unicode(key),
+                            ']' => Key::Unicode(key),
+                            '\\' => Key::Unicode(key),
+                            ';' => Key::Unicode(key),
+                            '\'' => Key::Unicode(key),
+                            ',' => Key::Unicode(key),
+                            '.' => Key::Unicode(key),
+                            '/' => Key::Unicode(key),
+                            _ => {
+                                println!("Line {line_index} (keypress): Invalid key {:?}", segments[1]);
+                                process::exit(1);
+                            }
                         }
                     }
-                }
-            };
+                };
 
-            // Add to actions
-            actions.push(Action::KeyPressAction { key });
-        } else {
-            println!("Line {line_index}: Invalid action: {action:?}");
-            process::exit(1);
+                // Add to actions
+                actions.push(Action::KeyPressAction { key });
+            }
+            _ => {
+                println!("Line {line_index}: Invalid action: {action:?}");
+                process::exit(1);
+            }
         }
     }
 
