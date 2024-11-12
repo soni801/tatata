@@ -1,8 +1,7 @@
+use clap::Parser;
+use enigo::{Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
 use std::path::PathBuf;
 use std::process;
-use clap::Parser;
-use enigo::{Button, Coordinate, Enigo, Key, Keyboard, Mouse, Settings};
-use enigo::Direction::Click;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -27,14 +26,20 @@ struct QueueItem {
 
 #[derive(Debug)]
 enum Action {
-    MouseMoveAction {
+    MouseMove {
         x: i32,
         y: i32
     },
-    MousePressAction {
+    MouseDown {
         button: Button
     },
-    KeyPressAction {
+    MouseUp {
+        button: Button
+    },
+    KeyDown {
+        key: Key
+    },
+    KeyUp {
         key: Key
     }
 }
@@ -160,49 +165,50 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
 
         // Split into segments
         let segments: Vec<&str> = action.split_whitespace().collect();
+        let action_name = segments[0];
 
         // Add Action to actions
-        match segments[0] {
+        match action_name {
             "mousemove" => {
                 // Validate arguments
                 if segments.len() < 3 {
-                    println!("Line {line_index} (mousemove): Too few arguments! (min. 2 arguments)");
+                    println!("Line {line_index} ({action_name}): Too few arguments! (min. 2 arguments)");
                     process::exit(1);
                 }
                 if segments.len() > 3 {
-                    println!("Line {line_index} (mousemove): Too many arguments provided (max. 2 arguments)");
+                    println!("Line {line_index} ({action_name}): Too many arguments provided (max. 2 arguments)");
                     process::exit(1);
                 }
 
                 // Parse X position
                 let x: i32 = segments[1].parse().unwrap_or_else(|error| {
-                    println!("Line {line_index} (mousemove): Invalid X position {:?} ({error})", segments[1]);
+                    println!("Line {line_index} ({action_name}): Invalid X position {:?} ({error})", segments[1]);
                     process::exit(1);
                 });
 
                 // Parse Y position
                 let y: i32 = segments[2].parse().unwrap_or_else(|error| {
-                    println!("Line {line_index} (mousemove): Invalid Y position {:?} ({error})", segments[2]);
+                    println!("Line {line_index} ({action_name}): Invalid Y position {:?} ({error})", segments[2]);
                     process::exit(1);
                 });
 
                 // Add to actions
-                actions.push(Action::MouseMoveAction { x, y });
+                actions.push(Action::MouseMove { x, y });
             }
-            "mousepress" => {
+            "mousedown" | "mouseup" => {
                 // Validate arguments
                 if segments.len() < 2 {
-                    println!("Line {line_index} (mousepress): No argument provided");
+                    println!("Line {line_index} ({action_name}): No argument provided");
                     process::exit(1);
                 }
                 if segments.len() > 2 {
-                    println!("Line {line_index} (mousepress): Too many arguments provided (max. 1 argument)");
+                    println!("Line {line_index} ({action_name}): Too many arguments provided (max. 1 argument)");
                     process::exit(1);
                 }
 
                 // Parse button
                 let button_number: u8 = segments[1].parse().unwrap_or_else(|error| {
-                    println!("Line {line_index} (mousepress): Invalid button {:?} ({error})", segments[1]);
+                    println!("Line {line_index} ({action_name}): Invalid button {:?} ({error})", segments[1]);
                     process::exit(1);
                 });
 
@@ -215,22 +221,26 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
                     #[cfg(not(target_os = "macos"))]
                     5 => Button::Forward,
                     _ => {
-                        println!("Line {line_index} (mousepress): Invalid button {:?}", segments[1]);
+                        println!("Line {line_index} ({action_name}): Invalid button {:?}", segments[1]);
                         process::exit(1);
                     }
                 };
 
                 // Add to actions
-                actions.push(Action::MousePressAction { button });
+                match action_name {
+                    "mousedown" => actions.push(Action::MouseDown { button }),
+                    "mouseup" => actions.push(Action::MouseUp { button }),
+                    _ => panic!("Line {line_index} ({action_name}): Reached a branch that should be impossible to reach. This is not your fault, please report a bug on GitHub if this keeps happening!")
+                }
             }
-            "keypress" => {
+            "keydown" | "keyup" => {
                 // Validate arguments
                 if segments.len() < 2 {
-                    println!("Line {line_index} (keypress): No argument provided");
+                    println!("Line {line_index} ({action_name}): No argument provided");
                     process::exit(1);
                 }
                 if segments.len() > 2 {
-                    println!("Line {line_index} (keypress): Too many arguments provided (max. 1 argument)");
+                    println!("Line {line_index} ({action_name}): Too many arguments provided (max. 1 argument)");
                     process::exit(1);
                 }
 
@@ -280,7 +290,7 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
                     _ => {
                         // Parse non-special keys
                         let key: char = segments[1].to_lowercase().parse().unwrap_or_else(|error| {
-                            println!("Line {line_index} (keypress): Invalid key {:?} ({error})", segments[1]);
+                            println!("Line {line_index} ({action_name}): Invalid key {:?} ({error})", segments[1]);
                             process::exit(1);
                         });
 
@@ -300,7 +310,7 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
                             '.' => Key::Unicode(key),
                             '/' => Key::Unicode(key),
                             _ => {
-                                println!("Line {line_index} (keypress): Invalid key {:?}", segments[1]);
+                                println!("Line {line_index} ({action_name}): Invalid key {:?}", segments[1]);
                                 process::exit(1);
                             }
                         }
@@ -308,10 +318,14 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
                 };
 
                 // Add to actions
-                actions.push(Action::KeyPressAction { key });
+                match action_name {
+                    "keydown" => actions.push(Action::KeyDown { key }),
+                    "keyup" => actions.push(Action::KeyUp { key }),
+                    _ => panic!("Line {line_index} ({action_name}): Reached a branch that should be impossible to reach. This is not your fault, please report a bug on GitHub if this keeps happening!")
+                }
             }
             _ => {
-                println!("Line {line_index}: Invalid action: {action:?}");
+                println!("Line {line_index}: Invalid action: {action_name:?}");
                 process::exit(1);
             }
         }
@@ -323,7 +337,7 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
 
 fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_execute: bool, should_log: bool) {
     match action {
-        Action::MouseMoveAction { x, y } => {
+        Action::MouseMove { x, y } => {
             if should_execute {
                 let _ = enigo.move_mouse(x, y, Coordinate::Abs);
             }
@@ -332,24 +346,44 @@ fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_e
                 println!("At {current_time}ms: Move mouse to {x}, {y}");
             }
         }
-        Action::MousePressAction { button } => {
+        Action::MouseDown { button } => {
             if should_execute {
-                let _ = enigo.button(button, Click);
+                let _ = enigo.button(button, Direction::Press);
             }
 
             if should_log {
                 println!("At {current_time}ms: Press mouse {button:?}");
             }
         }
-        Action::KeyPressAction { key } => {
+        Action::MouseUp { button } => {
             if should_execute {
-                if let Err(error) = enigo.key(key, Click) {
+                let _ = enigo.button(button, Direction::Release);
+            }
+
+            if should_log {
+                println!("At {current_time}ms: Release mouse {button:?}");
+            }
+        }
+        Action::KeyDown { key } => {
+            if should_execute {
+                if let Err(error) = enigo.key(key, Direction::Press) {
                     println!("Failed to press key {key:?}: {error}");
                 }
             }
 
             if should_log {
                 println!("At {current_time}ms: Press key {key:?}");
+            }
+        }
+        Action::KeyUp { key } => {
+            if should_execute {
+                if let Err(error) = enigo.key(key, Direction::Release) {
+                    println!("Failed to press key {key:?}: {error}");
+                }
+            }
+
+            if should_log {
+                println!("At {current_time}ms: Release key {key:?}");
             }
         }
     }

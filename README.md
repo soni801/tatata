@@ -41,13 +41,13 @@ execute the associated actions, in milliseconds after the script was started. Th
 actions separated by a semicolon (`;`). Valid actions are:
 
 - `mousemove`: Move the mouse to the specified absolute position
-- `mousepress`: Press and immediately release the specified mouse button:
+- `mousedown`/`mouseup`: Respectively press or release the specified mouse button:
   - `1`: Left click
   - `2`: Right click
   - `3`: Middle click
   - `4`: Back (unavailable on macOS)
   - `5`: Forward (unavailable on macOS)
-- `keypress`: Press and immediately release a key on the keyboard. This can take any of the following:
+- `keydown`/`keyup`: Respectively press or release a key on the keyboard. This can take any of the following:
   - A letter or number found on a standard keyboard
   - A symbol you can type on the base layer of your keyboard, i.e. without holding any modifiers
   - The following function keys: `f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`, `f9`, `f10`, `f11`, `f12`, `f13`,
@@ -60,10 +60,11 @@ actions separated by a semicolon (`;`). Valid actions are:
 ### Example
 
 ```
-0>mousemove 500 100; mousepress 1
-100>keypress h;keypress e;keypress l;keypress l;keypress o
-200>mousemove 800 100
-250>mousepress 1
+0>mousemove 500 100; mousedown 1;mouseup 1
+100>keydown h;keyup h;keydown e;keyup e;keydown l;keyup l;keydown l;keyup l;keydown o;keyup o
+200>mousemove 800 100;mousedown 2
+250>mousemove 800 670;mouseup 2
+300>mousemove 1460 120
 
 // Lines starting with a double slash are considered comments
 // You cannot currently place comments at the end of action lines
