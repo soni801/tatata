@@ -64,14 +64,30 @@ fn main() {
 }
 
 fn parse_file(file_path: PathBuf) -> Vec<QueueItem> {
-    // Create empty queue
-    let mut queue: Vec<QueueItem> = Vec::new();
+    // Check if file exists
+    if !file_path.exists() {
+        println!("File does not exist: {}", file_path.display());
+        process::exit(1);
+    }
+
+    // Validate file name (https://github.com/soni801/tatata/issues/1)
+    let file_name = file_path.to_str().unwrap_or_else(|| {
+        println!("Invalid file name: {}", file_path.display());
+        process::exit(1);
+    });
+    if !file_name.ends_with(".tatata") {
+        println!("Not a TATATA file: {}", file_path.display());
+        process::exit(1);
+    }
 
     // Try to open file
     let file_content = std::fs::read_to_string(file_path).unwrap_or_else(|error| {
         println!("Couldn't open input file for execution: {error}");
         process::exit(1);
     });
+
+    // Create empty queue
+    let mut queue: Vec<QueueItem> = Vec::new();
 
     // Parse file
     let mut line_index = 0;
@@ -141,7 +157,7 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
         let segments: Vec<&str> = action.split_whitespace().collect();
 
         // Add Action to actions
-        match segments[0] { 
+        match segments[0] {
             "mousemove" => {
                 // Validate arguments
                 if segments.len() < 3 {
