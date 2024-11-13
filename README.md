@@ -40,7 +40,10 @@ consists of a timestamp and an action field, separated by an angle bracket (`>`)
 execute the associated actions, in milliseconds after the script was started. The action field can contain any number of
 actions separated by a semicolon (`;`). Valid actions are:
 
-- `mousemove`: Move the mouse to the specified absolute position
+- `mousemove`: Move the mouse to the specified absolute position. Takes 3 arguments:
+  - Movement method (`abs`/`rel`); whether the mouse should move to a specific position or relative to its current position
+  - X coordinate/distance
+  - Y coordinate/distance
 - `mousedown`/`mouseup`: Respectively press or release the specified mouse button:
   - `1`: Left click
   - `2`: Right click
@@ -62,11 +65,11 @@ actions separated by a semicolon (`;`). Valid actions are:
 ### Example
 
 ```
-0>mousemove 500 100; mousedown 1;mouseup 1
+0>mousemove abs 500 100; mousedown 1;mouseup 1
 100>keydown enter;keyup enter;text Hello World!
-200>mousemove 800 100;mousedown 2
-250>mousemove 800 670;mouseup 2
-300>mousemove 1460 120
+200>mousemove rel 300 0;mousedown 2
+250>mousemove rel 0 570;mouseup 2
+300>mousemove abs 1460 120
 
 // Lines starting with a double slash are considered comments
 // You cannot currently place comments at the end of action lines

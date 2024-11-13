@@ -28,7 +28,8 @@ struct QueueItem {
 enum Action {
     MouseMove {
         x: i32,
-        y: i32
+        y: i32,
+        method: Coordinate
     },
     MouseDown {
         button: Button
@@ -174,29 +175,39 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
         match action_name {
             "mousemove" => {
                 // Validate arguments
-                if segments.len() < 3 {
-                    println!("Line {line_index} ({action_name}): Too few arguments! (min. 2 arguments)");
+                if segments.len() < 4 {
+                    println!("Line {line_index} ({action_name}): Too few arguments! (min. 3 arguments)");
                     process::exit(1);
                 }
-                if segments.len() > 3 {
-                    println!("Line {line_index} ({action_name}): Too many arguments provided (max. 2 arguments)");
+                if segments.len() > 4 {
+                    println!("Line {line_index} ({action_name}): Too many arguments provided (max. 3 arguments)");
                     process::exit(1);
                 }
 
+                // Parse method
+                let method = match segments[1] {
+                    "abs" => Coordinate::Abs,
+                    "rel" => Coordinate::Rel,
+                    _ => {
+                        println!("Line {line_index} ({action_name}): Invalid method {:?}", segments[1]);
+                        process::exit(1);
+                    }
+                };
+
                 // Parse X position
-                let x: i32 = segments[1].parse().unwrap_or_else(|error| {
-                    println!("Line {line_index} ({action_name}): Invalid X position {:?} ({error})", segments[1]);
+                let x: i32 = segments[2].parse().unwrap_or_else(|error| {
+                    println!("Line {line_index} ({action_name}): Invalid X position {:?} ({error})", segments[2]);
                     process::exit(1);
                 });
 
                 // Parse Y position
-                let y: i32 = segments[2].parse().unwrap_or_else(|error| {
-                    println!("Line {line_index} ({action_name}): Invalid Y position {:?} ({error})", segments[2]);
+                let y: i32 = segments[3].parse().unwrap_or_else(|error| {
+                    println!("Line {line_index} ({action_name}): Invalid Y position {:?} ({error})", segments[3]);
                     process::exit(1);
                 });
 
                 // Add to actions
-                actions.push(Action::MouseMove { x, y });
+                actions.push(Action::MouseMove { x, y, method });
             }
             "mousedown" | "mouseup" => {
                 // Validate arguments
@@ -350,13 +361,40 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
 
 fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_execute: bool, should_log: bool) {
     match action {
-        Action::MouseMove { x, y } => {
+        Action::MouseMove { x, y, method } => {
             if should_execute {
-                let _ = enigo.move_mouse(x, y, Coordinate::Abs);
+                // Because of a bug in enigo, we can't just pass the method to the move_mouse() function
+                match method {
+                    Coordinate::Abs => {
+                        let _ = enigo.move_mouse(x, y, method);
+                    },
+                    Coordinate::Rel => {
+                        // More details on why I'm doing this can be found on the relevant GitHub issue page
+                        // https://github.com/enigo-rs/enigo/issues/91
+                        // Basically, the relative mouse movement code uses incorrect pixel units.
+                        // The workaround for this is to first get the current mouse position,
+                        // calculate a new absolute position, and move the mouse there. This probably
+                        // introduces some overhead, but it'll just have to be acceptable until
+                        // the enigo maintainers push a fix.
+                        match enigo.location() {
+                            Ok(current_pos) => {
+                                // No error occurred while trying to get the location
+                                let _ = enigo.move_mouse(x + current_pos.0, y + current_pos.1, Coordinate::Abs);
+                            }
+                            Err(error) => {
+                                // For some reason, we got an error trying to get the mouse position
+                                println!("At {current_time}ms: Failed to move mouse: {error}");
+                            }
+                        }
+                    }
+                }
             }
 
             if should_log {
-                println!("At {current_time}ms: Move mouse to {x}, {y}");
+                match method {
+                    Coordinate::Abs => println!("At {current_time}ms: Move mouse to {x}, {y} (absolute)"),
+                    Coordinate::Rel => println!("At {current_time}ms: Move mouse by {x}, {y} (relative)")
+                }
             }
         }
         Action::MouseDown { button } => {
