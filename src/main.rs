@@ -1,7 +1,7 @@
 use clap::Parser;
 use enigo::{Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
 use std::path::PathBuf;
-use std::process;
+use std::{process, thread};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -29,6 +29,7 @@ enum Action {
     MouseMove {
         x: i32,
         y: i32,
+        time: u16,
         method: Coordinate
     },
     MouseDown {
@@ -65,7 +66,7 @@ fn main() {
     for entry in queue {
         // Calculate wait time
         let wait_time = entry.time - current_timestamp;
-        std::thread::sleep(std::time::Duration::from_millis(wait_time));
+        thread::sleep(std::time::Duration::from_millis(wait_time));
 
         // Execute actions
         for action in entry.actions {
@@ -179,8 +180,8 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
                     println!("Line {line_index} ({action_name}): Too few arguments! (min. 3 arguments)");
                     process::exit(1);
                 }
-                if segments.len() > 4 {
-                    println!("Line {line_index} ({action_name}): Too many arguments provided (max. 3 arguments)");
+                if segments.len() > 5 {
+                    println!("Line {line_index} ({action_name}): Too many arguments provided (max. 4 arguments)");
                     process::exit(1);
                 }
 
@@ -206,8 +207,18 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
                     process::exit(1);
                 });
 
+                // Parse time
+                let time: u16 = if segments.len() > 4 {
+                    segments[4].parse().unwrap_or_else(|error| {
+                        println!("Line {line_index} ({action_name}): Invalid time {:?} ({error})", segments[4]);
+                        process::exit(1);
+                    })
+                } else {
+                    0
+                };
+
                 // Add to actions
-                actions.push(Action::MouseMove { x, y, method });
+                actions.push(Action::MouseMove { x, y, time, method });
             }
             "mousedown" | "mouseup" => {
                 // Validate arguments
@@ -361,39 +372,88 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
 
 fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_execute: bool, should_log: bool) {
     match action {
-        Action::MouseMove { x, y, method } => {
+        Action::MouseMove { x, y, time, method } => {
             if should_execute {
-                // Because of a bug in enigo, we can't just pass the method to the move_mouse() function
-                match method {
-                    Coordinate::Abs => {
-                        let _ = enigo.move_mouse(x, y, method);
-                    },
-                    Coordinate::Rel => {
-                        // More details on why I'm doing this can be found on the relevant GitHub issue page
-                        // https://github.com/enigo-rs/enigo/issues/91
-                        // Basically, the relative mouse movement code uses incorrect pixel units.
-                        // The workaround for this is to first get the current mouse position,
-                        // calculate a new absolute position, and move the mouse there. This probably
-                        // introduces some overhead, but it'll just have to be acceptable until
-                        // the enigo maintainers push a fix.
-                        match enigo.location() {
-                            Ok(current_pos) => {
-                                // No error occurred while trying to get the location
-                                let _ = enigo.move_mouse(x + current_pos.0, y + current_pos.1, Coordinate::Abs);
-                            }
-                            Err(error) => {
-                                // For some reason, we got an error trying to get the mouse position
-                                println!("At {current_time}ms: Failed to move mouse: {error}");
+                if time < 2 {
+                    // Normal "snappy" mouse movement
+                    // Because of a bug in enigo, we can't just pass the method to the move_mouse() function
+                    match method {
+                        Coordinate::Abs => {
+                            let _ = enigo.move_mouse(x, y, method);
+                        },
+                        Coordinate::Rel => {
+                            // More details on why I'm doing this can be found on the relevant GitHub issue page
+                            // https://github.com/enigo-rs/enigo/issues/91
+                            // Basically, the relative mouse movement code uses incorrect pixel units.
+                            // The workaround for this is to first get the current mouse position,
+                            // calculate a new absolute position, and move the mouse there. This probably
+                            // introduces some overhead, but it'll just have to be acceptable until
+                            // the enigo maintainers push a fix.
+                            match enigo.location() {
+                                Ok(current_pos) => {
+                                    // No error occurred while trying to get the location
+                                    let _ = enigo.move_mouse(x + current_pos.0, y + current_pos.1, Coordinate::Abs);
+                                }
+                                Err(error) => {
+                                    // For some reason, we got an error trying to get the mouse position
+                                    println!("At {current_time}ms: Failed to move mouse: {error}");
+                                }
                             }
                         }
                     }
+                } else {
+                    // Create a new thread for handling timing of interpolated mouse movements
+                    thread::spawn(move || {
+                        // Create new enigo object for this thread to avoid dealing with cross-thread objects
+                        // There is probably a better way of doing this, but I'm not about to spend
+                        // my entire week figuring out the best practice for this.
+                        let mut enigo = Enigo::new(&Settings::default()).unwrap_or_else(|error| {
+                            println!("Failed to initialize Enigo: {error}");
+                            process::exit(1);
+                        });
+
+                        // Get start position
+                        let start_pos = match enigo.location() {
+                            Ok(pos) => pos,
+                            Err(error) => {
+                                // For some reason, we got an error trying to get the mouse position
+                                println!("At {current_time}ms: Failed to move mouse: {error}");
+                                process::exit(1);
+                            }
+                        };
+
+                        // Get relative desired position regardless of movement method
+                        let move_offset = match method {
+                            Coordinate::Abs => (x - start_pos.0, y - start_pos.1),
+                            Coordinate::Rel => (x, y)
+                        };
+
+                        // Gradually move mouse every millisecond
+                        let mut last_iteration = std::time::Instant::now();
+                        for iteration in 0..time {
+                            // Sleep for the time needed for this cycle to be exactly one millisecond
+                            // FIXME: Something is going wrong here. I have no idea why, but I guess that's a problem for future me.
+                            let elapsed = last_iteration.elapsed() + std::time::Duration::from_micros(200); // Temporarily offset this by 200 microseconds to combat incorrect timings (THIS IS VERY BAD)
+                            if elapsed < std::time::Duration::from_millis(1) {
+                                thread::sleep(std::time::Duration::from_millis(1) - elapsed);
+                            }
+                            last_iteration = std::time::Instant::now();
+
+                            // Get absolute position for this iteration
+                            let x = start_pos.0 + move_offset.0 * iteration as i32 / time as i32;
+                            let y = start_pos.1 + move_offset.1 * iteration as i32 / time as i32;
+
+                            // Set mouse position
+                            let _ = enigo.move_mouse(x, y, Coordinate::Abs);
+                        }
+                    });
                 }
             }
 
             if should_log {
                 match method {
-                    Coordinate::Abs => println!("At {current_time}ms: Move mouse to {x}, {y} (absolute)"),
-                    Coordinate::Rel => println!("At {current_time}ms: Move mouse by {x}, {y} (relative)")
+                    Coordinate::Abs => println!("At {current_time}ms: Move mouse to {x}, {y} over {time}ms (absolute)"),
+                    Coordinate::Rel => println!("At {current_time}ms: Move mouse by {x}, {y} over {time}ms (relative)")
                 }
             }
         }
