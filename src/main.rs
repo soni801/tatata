@@ -2,6 +2,7 @@ use clap::Parser;
 use enigo::{Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
 use std::path::PathBuf;
 use std::{process, thread};
+use std::thread::JoinHandle;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -56,13 +57,17 @@ fn main() {
     let dry_run = args.dry_run;
     let verbose = args.verbose;
 
-    // Execute file
-    let mut current_timestamp = 0;
+    // Create Enigo object
     let mut enigo = Enigo::new(&Settings::default()).unwrap_or_else(|error| {
         println!("Failed to initialize Enigo: {error}");
         process::exit(1);
     });
 
+    // Store thread handles created during execution
+    let mut threads: Vec<JoinHandle<()>> = Vec::new();
+
+    // Execute queue
+    let mut current_timestamp = 0;
     for entry in queue {
         // Calculate wait time
         let wait_time = entry.time - current_timestamp;
@@ -70,11 +75,25 @@ fn main() {
 
         // Execute actions
         for action in entry.actions {
-            execute_action(&mut enigo, entry.time, action, !dry_run, dry_run || verbose);
+            if let Some(handle) = execute_action(&mut enigo, entry.time, action, !dry_run, dry_run || verbose) {
+                threads.push(handle);
+            }
         }
 
         // Update current timestamp
         current_timestamp = entry.time;
+    }
+
+    // Wait for all threads to finish execution
+    for handle in threads {
+        match handle.join() {
+            Ok(_) => {
+                if verbose {
+                    println!("Joined thread handle");
+                }
+            }
+            Err(error) => println!("Failed to join thread: {error:?}")
+        }
     }
 }
 
@@ -370,9 +389,16 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
     actions
 }
 
-fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_execute: bool, should_log: bool) {
+fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_execute: bool, should_log: bool) -> Option<JoinHandle<()>> {
     match action {
         Action::MouseMove { x, y, time, method } => {
+            if should_log {
+                match method {
+                    Coordinate::Abs => println!("At {current_time}ms: Move mouse to {x}, {y} over {time}ms (absolute)"),
+                    Coordinate::Rel => println!("At {current_time}ms: Move mouse by {x}, {y} over {time}ms (relative)")
+                }
+            }
+
             if should_execute {
                 if time < 2 {
                     // Normal "snappy" mouse movement
@@ -403,7 +429,7 @@ fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_e
                     }
                 } else {
                     // Create a new thread for handling timing of interpolated mouse movements
-                    thread::spawn(move || {
+                    return Some(thread::spawn(move || {
                         // Create new enigo object for this thread to avoid dealing with cross-thread objects
                         // There is probably a better way of doing this, but I'm not about to spend
                         // my entire week figuring out the best practice for this.
@@ -446,65 +472,61 @@ fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_e
                             // Set mouse position
                             let _ = enigo.move_mouse(x, y, Coordinate::Abs);
                         }
-                    });
-                }
-            }
-
-            if should_log {
-                match method {
-                    Coordinate::Abs => println!("At {current_time}ms: Move mouse to {x}, {y} over {time}ms (absolute)"),
-                    Coordinate::Rel => println!("At {current_time}ms: Move mouse by {x}, {y} over {time}ms (relative)")
+                    }))
                 }
             }
         }
         Action::MouseDown { button } => {
-            if should_execute {
-                let _ = enigo.button(button, Direction::Press);
-            }
-
             if should_log {
                 println!("At {current_time}ms: Press mouse {button:?}");
             }
+
+            if should_execute {
+                let _ = enigo.button(button, Direction::Press);
+            }
         }
         Action::MouseUp { button } => {
-            if should_execute {
-                let _ = enigo.button(button, Direction::Release);
-            }
-
             if should_log {
                 println!("At {current_time}ms: Release mouse {button:?}");
             }
+
+            if should_execute {
+                let _ = enigo.button(button, Direction::Release);
+            }
         }
         Action::KeyDown { key } => {
+            if should_log {
+                println!("At {current_time}ms: Press key {key:?}");
+            }
+
             if should_execute {
                 if let Err(error) = enigo.key(key, Direction::Press) {
                     println!("Failed to press key {key:?}: {error}");
                 }
             }
-
-            if should_log {
-                println!("At {current_time}ms: Press key {key:?}");
-            }
         }
         Action::KeyUp { key } => {
+            if should_log {
+                println!("At {current_time}ms: Release key {key:?}");
+            }
+
             if should_execute {
                 if let Err(error) = enigo.key(key, Direction::Release) {
                     println!("Failed to release key {key:?}: {error}");
                 }
             }
-
-            if should_log {
-                println!("At {current_time}ms: Release key {key:?}");
-            }
         }
         Action::Text { text } => {
-            if should_execute {
-                let _ = enigo.text(text.as_str());
-            }
-
             if should_log {
                 println!("At {current_time}ms: Input text {text:?}");
             }
+
+            if should_execute {
+                let _ = enigo.text(text.as_str());
+            }
         }
     }
+
+    // Return None as no thread was created
+    None
 }
