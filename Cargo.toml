@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
 enigo = "0.2.1"
+spin_sleep = "1.2.1"

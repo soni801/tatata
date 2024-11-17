@@ -30,7 +30,7 @@ enum Action {
     MouseMove {
         x: i32,
         y: i32,
-        time: u16,
+        time: u64,
         method: Coordinate
     },
     MouseDown {
@@ -67,11 +67,12 @@ fn main() {
     let mut threads: Vec<JoinHandle<()>> = Vec::new();
 
     // Execute queue
-    let mut current_timestamp = 0;
+    let start_time = std::time::Instant::now();
     for entry in queue {
-        // Calculate wait time
-        let wait_time = entry.time - current_timestamp;
-        thread::sleep(std::time::Duration::from_millis(wait_time));
+        // Wait until correct timestamp
+        if entry.time > 0 {
+            spin_sleep::sleep(std::time::Duration::from_millis(entry.time) - start_time.elapsed());
+        }
 
         // Execute actions
         for action in entry.actions {
@@ -79,9 +80,6 @@ fn main() {
                 threads.push(handle);
             }
         }
-
-        // Update current timestamp
-        current_timestamp = entry.time;
     }
 
     // Wait for all threads to finish execution
@@ -247,7 +245,7 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
                 });
 
                 // Parse time
-                let time: u16 = if segments.len() > 4 {
+                let time: u64 = if segments.len() > 4 {
                     segments[4].parse().unwrap_or_else(|error| {
                         println!("Line {line_index} ({action_name}): Invalid time {:?} ({error})", segments[4]);
                         process::exit(1);
@@ -475,15 +473,12 @@ fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_e
                         };
 
                         // Gradually move mouse every millisecond
-                        let mut last_iteration = std::time::Instant::now();
+                        let start_time = std::time::Instant::now();
                         for iteration in 0..time {
-                            // Sleep for the time needed for this cycle to be exactly one millisecond
-                            // FIXME: Something is going wrong here. I have no idea why, but I guess that's a problem for future me.
-                            let elapsed = last_iteration.elapsed() + std::time::Duration::from_micros(200); // Temporarily offset this by 200 microseconds to combat incorrect timings (THIS IS VERY BAD)
-                            if elapsed < std::time::Duration::from_millis(1) {
-                                thread::sleep(std::time::Duration::from_millis(1) - elapsed);
+                            // If the loop is "too far ahead", sleep for a bit to realign to the 1ms "schedule"
+                            if start_time.elapsed() < std::time::Duration::from_millis(iteration) {
+                                spin_sleep::sleep(std::time::Duration::from_millis(iteration) - start_time.elapsed());
                             }
-                            last_iteration = std::time::Instant::now();
 
                             // Get absolute position for this iteration
                             let x = start_pos.0 + move_offset.0 * iteration as i32 / time as i32;
