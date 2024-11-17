@@ -143,18 +143,38 @@ fn parse_file(file_path: PathBuf) -> Vec<QueueItem> {
         // Decode line
         let line_timestamp_text = line_decoded[0];
         let line_actions_text = line_decoded[1];
-        let line_timestamp: u64 = line_timestamp_text.parse().unwrap_or_else(|error| {
-            println!("Line {line_index}: Incorrectly formatted timestamp: {line_timestamp_text:?} ({error})");
-            process::exit(1);
-        });
 
-        // Reject lines that have a timestamp lower than the previous line
-        if let Some(previous_action) = queue.last() {
-            if line_timestamp < previous_action.time {
-                println!("Line {line_index}: Timestamp cannot be lower than previous action line");
+        // Get previous timestamp
+        let previous_timestamp = if let Some(previous_action) = queue.last() {
+            previous_action.time
+        } else {
+            0
+        };
+
+        // Parse the timestamp of this line
+        let line_timestamp: u64 = if line_timestamp_text.starts_with("+") {
+            // Relative timestamp
+            let parsed_time: u64 = line_timestamp_text[1..].parse().unwrap_or_else(|error| {
+                println!("Line {line_index}: Incorrectly formatted timestamp: {line_timestamp_text:?} ({error})");
+                process::exit(1);
+            });
+
+            previous_timestamp + parsed_time
+        } else {
+            // Absolute timestamp
+            let parsed_time: u64 = line_timestamp_text.parse().unwrap_or_else(|error| {
+                println!("Line {line_index}: Incorrectly formatted timestamp: {line_timestamp_text:?} ({error})");
+                process::exit(1);
+            });
+
+            // Reject lines that have a timestamp lower than the previous line
+            if parsed_time > 0 && parsed_time <= previous_timestamp {
+                println!("Line {line_index}: Timestamp must be greater than previous action line");
                 process::exit(1);
             }
-        }
+
+            parsed_time
+        };
 
         // Parse actions
         let actions = parse_actions_string(line_actions_text, line_index);
