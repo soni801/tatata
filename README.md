@@ -36,9 +36,16 @@ approve TATATA towards the bottom of the page.
 ## The TATATA language
 
 The TATATA language is heavily inspired by the [Portal 2 TAS language](https://wiki.portal2.sr/TASing). Every line
-consists of a timestamp and an action field, separated by an angle bracket (`>`). The timestamp is the point in time to
-execute the associated actions, in milliseconds after the script was started. The action field can contain any number of
-actions separated by a semicolon (`;`). Valid actions are:
+consists of a timestamp and an action field, separated by an angle bracket (`>`).
+
+The timestamp is the point in time to execute the associated actions. There are two types of timestamps:
+
+- _Absolute timestamps_, only a number: The specific point in time to execute the actions, in milliseconds after the
+  script execution was started. For example, `3000>` will execute 3000ms after the execution was started.
+- _Relative timestamps_, a `+` followed by a number: A certain time after the previous action line, in milliseconds. For
+  example, `+50>` will execute 50ms after the previous action line.
+
+The action field can contain any number of actions separated by a semicolon (`;`). Valid actions are:
 
 - `mousemove`: Move the mouse to the specified absolute position. Takes 3-4 arguments:
   - Movement method (`abs`/`rel`); whether the mouse should move to a specific position or relative to its current position
@@ -70,7 +77,7 @@ actions separated by a semicolon (`;`). Valid actions are:
 0>mousemove abs 500 100; mousedown 1;mouseup 1
 100>keydown enter;keyup enter;text Hello World!
 200>mousemove rel 300 0;mousedown 2
-250>mousemove rel 0 570 200;mouseup 2
++50>mousemove rel 0 570 200;mouseup 2
 500>mousemove abs 1460 120
 
 // Lines starting with a double slash are considered comments
