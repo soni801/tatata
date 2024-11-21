@@ -33,21 +33,11 @@ enum Action {
         time: u64,
         method: Coordinate
     },
-    MouseDown {
-        button: Button
-    },
-    MouseUp {
-        button: Button
-    },
-    KeyDown {
-        key: Key
-    },
-    KeyUp {
-        key: Key
-    },
-    Text {
-        text: String
-    }
+    MouseDown(Button),
+    MouseUp(Button),
+    KeyDown(Key),
+    KeyUp(Key),
+    Text(String)
 }
 
 fn main() {
@@ -290,8 +280,8 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
 
                 // Add to actions
                 match action_name {
-                    "mousedown" => actions.push(Action::MouseDown { button }),
-                    "mouseup" => actions.push(Action::MouseUp { button }),
+                    "mousedown" => actions.push(Action::MouseDown(button)),
+                    "mouseup" => actions.push(Action::MouseUp(button)),
                     _ => unreachable!("Mouse action must be mousedown or mouseup")
                 }
             }
@@ -381,8 +371,8 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
 
                 // Add to actions
                 match action_name {
-                    "keydown" => actions.push(Action::KeyDown { key }),
-                    "keyup" => actions.push(Action::KeyUp { key }),
+                    "keydown" => actions.push(Action::KeyDown(key)),
+                    "keyup" => actions.push(Action::KeyUp(key)),
                     _ => unreachable!("Key action must be keydown or keyup")
                 }
             }
@@ -394,7 +384,7 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
                 }
 
                 // Add to actions
-                actions.push(Action::Text { text: segments[1..].join(" ") });
+                actions.push(Action::Text(segments[1..].join(" ")));
             }
             _ => {
                 println!("Line {line_index}: Invalid action: {action_name:?}");
@@ -491,7 +481,7 @@ fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_e
                 }
             }
         }
-        Action::MouseDown { button } => {
+        Action::MouseDown(button) => {
             if should_log {
                 println!("At {current_time}ms: Press mouse {button:?}");
             }
@@ -500,7 +490,7 @@ fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_e
                 let _ = enigo.button(button, Direction::Press);
             }
         }
-        Action::MouseUp { button } => {
+        Action::MouseUp(button) => {
             if should_log {
                 println!("At {current_time}ms: Release mouse {button:?}");
             }
@@ -509,7 +499,7 @@ fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_e
                 let _ = enigo.button(button, Direction::Release);
             }
         }
-        Action::KeyDown { key } => {
+        Action::KeyDown(key) => {
             if should_log {
                 println!("At {current_time}ms: Press key {key:?}");
             }
@@ -520,7 +510,7 @@ fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_e
                 }
             }
         }
-        Action::KeyUp { key } => {
+        Action::KeyUp(key) => {
             if should_log {
                 println!("At {current_time}ms: Release key {key:?}");
             }
@@ -531,7 +521,7 @@ fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_e
                 }
             }
         }
-        Action::Text { text } => {
+        Action::Text(text) => {
             if should_log {
                 println!("At {current_time}ms: Input text {text:?}");
             }
