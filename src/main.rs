@@ -113,11 +113,18 @@ fn parse_file(file_path: PathBuf) -> Vec<QueueItem> {
 
     // Parse file
     let mut line_index = 0;
-    for line in file_content.lines() {
+    for mut line in file_content.lines() {
         line_index += 1;
 
-        // Skip if line is a comment or empty
-        if line.starts_with("//") || line.is_empty() {
+        // Check if the line contains a comment
+        line = if line.contains("//") {
+            line.split("//").next().unwrap()
+        } else {
+            line
+        };
+
+        // Skip if line is empty or only whitespace
+        if line.trim().is_empty() {
             continue;
         }
 
