@@ -113,10 +113,37 @@ fn parse_file(file_path: PathBuf) -> Vec<QueueItem> {
 
     // Parse file
     let mut line_index = 0;
+    let mut in_comment = false;
     for mut line in file_content.lines() {
         line_index += 1;
 
-        // Check if the line contains a comment
+        // Check if the line closes a multi-line comment
+        if in_comment {
+            if line.contains("*/") {
+                in_comment = false;
+                line = line.split("*/").collect::<Vec<&str>>()[1];
+            } else {
+                continue;
+            }
+        }
+
+        // Check if the line opens a multi-line comment
+        let mut line_without_comment: String;
+        if line.contains("/*") {
+            line_without_comment = line.split("/*").next().unwrap().to_string();
+
+            // Check if the multi-line comment closes on the same line
+            if line.contains("*/") {
+                let after_comment = line.split("*/").collect::<Vec<&str>>()[1];
+                line_without_comment.push_str(after_comment);
+            } else {
+                in_comment = true;
+            }
+
+            line = line_without_comment.as_str();
+        }
+
+        // Check if the line contains a single-line comment
         line = if line.contains("//") {
             line.split("//").next().unwrap()
         } else {
