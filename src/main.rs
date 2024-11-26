@@ -72,7 +72,7 @@ fn main() {
     let start_time = std::time::Instant::now();
     for entry in queue {
         // Wait until correct timestamp
-        if entry.time > 0 {
+        if start_time.elapsed() < std::time::Duration::from_millis(entry.time) {
             spin_sleep::sleep(std::time::Duration::from_millis(entry.time) - start_time.elapsed());
         }
 
