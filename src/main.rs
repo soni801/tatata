@@ -37,7 +37,15 @@ enum Action {
     MouseUp(Button),
     KeyDown(Key),
     KeyUp(Key),
+    Release(OutputType),
     Text(String)
+}
+
+#[derive(Debug)]
+enum OutputType {
+    Mouse,
+    Key,
+    Both
 }
 
 fn main() {
@@ -56,6 +64,10 @@ fn main() {
     // Store thread handles created during execution
     let mut threads: Vec<JoinHandle<()>> = Vec::new();
 
+    // Store held outputs while running
+    let mut held_mouse: Vec<Button> = Vec::new();
+    let mut held_key: Vec<Key> = Vec::new();
+
     // Execute queue
     let start_time = std::time::Instant::now();
     for entry in queue {
@@ -66,7 +78,7 @@ fn main() {
 
         // Execute actions
         for action in entry.actions {
-            if let Some(handle) = execute_action(&mut enigo, entry.time, action, !dry_run, dry_run || verbose) {
+            if let Some(handle) = execute_action(&mut enigo, entry.time, action, !dry_run, dry_run || verbose, (&mut held_mouse, &mut held_key)) {
                 threads.push(handle);
             }
         }
@@ -410,6 +422,28 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
                     _ => unreachable!("Key action must be keydown or keyup")
                 }
             }
+            "release" => {
+                // Validate arguments
+                if segments.len() < 2 {
+                    println!("Line {line_index} ({action_name}): No argument provided");
+                    process::exit(1);
+                }
+                if segments.len() > 2 {
+                    println!("Line {line_index} ({action_name}): Too many arguments provided (max. 1 argument)");
+                    process::exit(1);
+                }
+
+                // Add to actions
+                match segments[1].to_lowercase().as_str() {
+                    "mouse" => actions.push(Action::Release(OutputType::Mouse)),
+                    "key" => actions.push(Action::Release(OutputType::Key)),
+                    "both" => actions.push(Action::Release(OutputType::Both)),
+                    _ => {
+                        println!("Line {line_index} ({action_name}): Invalid argument {:?}", segments[1]);
+                        process::exit(1);
+                    }
+                }
+            }
             "text" => {
                 // Make sure text is provided
                 if segments.len() < 2 {
@@ -431,7 +465,7 @@ fn parse_actions_string(string: &str, line_index: i32) -> Vec<Action> {
     actions
 }
 
-fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_execute: bool, should_log: bool) -> Option<JoinHandle<()>> {
+fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_execute: bool, should_log: bool, held_outputs: (&mut Vec<Button>, &mut Vec<Key>)) -> Option<JoinHandle<()>> {
     match action {
         Action::MouseMove { x, y, time, method } => {
             if should_log {
@@ -522,6 +556,7 @@ fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_e
 
             if should_execute {
                 let _ = enigo.button(button, Direction::Press);
+                held_outputs.0.push(button);
             }
         }
         Action::MouseUp(button) => {
@@ -531,6 +566,11 @@ fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_e
 
             if should_execute {
                 let _ = enigo.button(button, Direction::Release);
+
+                // Remove from held outputs
+                if let Some(index) = held_outputs.0.iter().position(|b| b == &button) {
+                    held_outputs.0.remove(index);
+                }
             }
         }
         Action::KeyDown(key) => {
@@ -541,7 +581,9 @@ fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_e
             if should_execute {
                 if let Err(error) = enigo.key(key, Direction::Press) {
                     println!("Failed to press key {key:?}: {error}");
+                    return None;
                 }
+                held_outputs.1.push(key);
             }
         }
         Action::KeyUp(key) => {
@@ -552,6 +594,49 @@ fn execute_action(enigo: &mut Enigo, current_time: u64, action: Action, should_e
             if should_execute {
                 if let Err(error) = enigo.key(key, Direction::Release) {
                     println!("Failed to release key {key:?}: {error}");
+                    return None;
+                }
+
+                // Remove from held outputs
+                if let Some(index) = held_outputs.1.iter().position(|b| b == &key) {
+                    held_outputs.1.remove(index);
+                }
+            }
+        }
+        Action::Release(output_type) => {
+            if should_log {
+                match output_type {
+                    OutputType::Mouse => println!("At {current_time}ms: Release all mouse buttons"),
+                    OutputType::Key => println!("At {current_time}ms: Release all keys"),
+                    OutputType::Both => println!("At {current_time}ms: Release all mouse buttons and keys")
+                }
+            }
+
+            if should_execute {
+                match output_type {
+                    OutputType::Mouse => {
+                        for button in &*held_outputs.0 {
+                            let _ = enigo.button(*button, Direction::Release);
+                        }
+                        held_outputs.0.clear();
+                    }
+                    OutputType::Key => {
+                        for key in &*held_outputs.1 {
+                            let _ = enigo.key(*key, Direction::Release);
+                        }
+                        held_outputs.1.clear();
+                    }
+                    OutputType::Both => {
+                        for button in &*held_outputs.0 {
+                            let _ = enigo.button(*button, Direction::Release);
+                        }
+                        held_outputs.0.clear();
+
+                        for key in &*held_outputs.1 {
+                            let _ = enigo.key(*key, Direction::Release);
+                        }
+                        held_outputs.1.clear();
+                    }
                 }
             }
         }
