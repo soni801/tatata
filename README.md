@@ -68,20 +68,36 @@ The action field can contain any number of actions separated by a semicolon (`;`
   - Arrow keys: `up`, `down`, `left`, `right`
   - The following other special keys: `tab`, `escape`, `space`, `enter`, `backspace`, `insert` (unavailable on macOS),
   `delete`, `home`, `end`, `pageup`, `pagedown`
+- `release`: Release all currently held inputs of the specified type:
+  - `mouse`: Release all held mouse buttons
+  - `key`: Release all held keyboard keys
+  - `both`: Release all held mouse buttons and keyboard keys
 - `text`: Write the following text, up until the end of the line or the next semicolon (`;`). Does not need to be
   wrapped in quotes, and cannot contain the angle bracket separator (`>`).
+
+There's also two types of comments:
+
+- Line comments, opened with `//`: The rest of the line will be considered a comment and not be parsed
+- Block comments, opened with `/*` and closed with `*/`: The text between the opening and closing slashes will be
+  considered a comment and not be parsed. This applies regardless of whether the opening and closing slashes are on the
+  same line.
 
 ### Example
 
 ```
+/* This script does something cool
+And I can type stuff here because this is a comment */
+
+// Do some stuff
 0>mousemove abs 500 100; mousedown 1;mouseup 1
-100>keydown enter;keyup enter;text Hello World!
+100>keydown enter;keyup enter;text Hello World! // This types Hello World amongst other things
 200>mousemove rel 300 0;mousedown 2
 +50>mousemove rel 0 570 200;mouseup 2
 500>mousemove abs 1460 120
 
-// Lines starting with a double slash are considered comments
-// You cannot currently place comments at the end of action lines
++100>keydown a; keydown b; keydown c
+// Now, let's release all the keys that we are holding down
++500>release key
 ```
 
 ## Future plans
